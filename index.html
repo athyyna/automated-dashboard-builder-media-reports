@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Report Builder — v2.6 (Ads Manager template)</title>
+<style>
+*{box-sizing:border-box} body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#eef2f7;color:#111}
+.banner{background:#1f3a5f;color:#fff;padding:20px 20px 16px;border-bottom:5px solid #2aa198}
+.wrap{max-width:900px;margin:0 auto;padding:0 16px 28px} .banner .wrap{padding:0}
+h1{font-size:22px;margin:0 0 4px} .banner p{margin:0;color:#dbe6f5;font-size:14px;line-height:1.5}
+.card{background:#fff;border:1px solid #d0d9e8;border-top:4px solid #1f3a5f;border-radius:12px;padding:16px;margin:16px 0}
+h2{font-size:16px;margin:0 0 8px} p,li{font-size:14px;line-height:1.6} .muted{color:#555;font-size:13px}
+label{display:block;font-size:12px;color:#555;margin:0 0 4px;font-weight:600}
+input,select,textarea{width:100%;padding:9px;border:1px solid #c3cede;border-radius:8px;font:inherit;background:#fff}
+textarea{min-height:90px;font-family:ui-monospace,Menlo,monospace;font-size:12px}
+button{padding:9px 14px;border-radius:8px;border:1px solid #c3cede;background:#fff;cursor:pointer;font:inherit;font-weight:700;margin:2px 4px 2px 0}
+button.primary{background:#1f3a5f;color:#fff;border-color:#1f3a5f}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 10px} .field{flex:1 1 160px}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:10px 0}
+.tile{border:1px solid #d0d9e8;border-radius:10px;padding:12px;background:#f8fafc}
+.tile b{display:block;font-size:12px;color:#555;font-weight:600}
+.tile span{font-size:20px;font-weight:800} .tile small{display:block;color:#555;font-size:12px}
+.hero{border:2px solid #2aa198;border-radius:10px;padding:14px;background:#f0fdfa}
+table{width:100%;border-collapse:collapse;font-size:13px} th,td{border:1px solid #d0d9e8;padding:8px;text-align:left} th{background:#eef2f7}
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700;background:#fef3c7;color:#92400e}
+.ok{color:#166534;font-weight:700} .err{color:#991b1b;font-weight:700}
+.check{list-style:none;padding:0} .check li{padding:6px 0;border-bottom:1px solid #eef2f7}
+@media(max-width:640px){.tiles{grid-template-columns:repeat(2,1fr)}}
+@media print{.nobprint{display:none} body{background:#fff}}
+</style>
+</head>
+<body>
+<div class="banner"><div class="wrap">
+<h1>Report Builder — v2.6 · Ads Manager template</h1>
+<p>Built around a real Ads Manager export: weekly breakdown, Amount spent in the export's currency, Results split by what they actually are. Weekly rows are aggregated by ad before anything is ranked, and totals are campaign to date as exported — not a 7-day slice. Two charts are included: spend by ad set, and a scatter of every ad by impressions, spend and CTR. Every report opens with a TLDR top 3, and exports as HTML, PDF, or a Sheets-ready CSV.</p>
+<p style="margin-top:8px">Template: <b>v2.6 — locked</b> &nbsp;·&nbsp; Nothing is sent anywhere — the file is read in your browser only. &nbsp;·&nbsp; Flow: upload CSV → check → print / save as PDF. Nothing auto-sends.</p>
+</div></div>
+<div class="wrap">
+
+<div class="card nobprint">
+<h2>1 · Upload your CSV</h2>
+<p class="muted">Your Ads Manager export as-is — the columns it already has. A weekly breakdown is fine: one row per ad per week is aggregated by ad, so the same ad doesn't appear three times in the top 5. Works with: <b>Reporting starts / ends, Ad name, Campaign / Ad set name, Results + Result indicator, Reach, Amount spent, Impressions, Link clicks</b>. Currency is read from the Amount spent header (USD, SGD…). Extra columns are ignored. Quoted names with commas are handled.</p>
+<div class="row">
+<div class="field"><label>CSV file (.csv or .tsv)</label><input type="file" id="csvFile" accept=".csv,.tsv,text/csv,text/tab-separated-values,text/plain"></div>
+</div>
+<div class="row">
+<div class="field"><label>…or paste it here</label><textarea id="pasteBox" placeholder="Reporting starts,Reporting ends,Ad name,Results,Result indicator,Reach,Amount spent (USD),Impressions,Link clicks&#10;2026-10-06,2026-10-12,Video — Hero 15s,5800,actions:link_click,300000,1200,412000,5800"></textarea></div>
+</div>
+<button class="primary" onclick="loadPaste()">Render report from pasted CSV →</button>
+<button onclick="loadSample()">Try with sample data</button>
+<button onclick="downloadTemplate()">Download Ads Manager template</button>
+<p id="loadMsg" class="muted" role="status">No file loaded yet.</p>
+</div>
+
+<div class="card nobprint">
+<h2>2 · Name it (optional)</h2>
+<div class="row">
+<div class="field"><label>Program / report title</label><input id="progName" value="Weekly report"></div>
+<div class="field"><label>Objective (sets the hero metric only)</label><select id="objective">
+<option>Awareness</option><option selected>Traffic</option><option>Conversion / Sales</option><option>Lead Gen</option><option>Click-to-WhatsApp</option><option>Livestream</option>
+</select></div>
+<div class="field"><label>Date range (from your export)</label><input id="periodRange" value="" placeholder="e.g. 1 Sep – 8 Nov 2026 — campaign to date"></div>
+</div>
+<button class="primary" onclick="renderReport()">Re-render</button>
+<button onclick="printReport()">Print / Save as PDF</button>
+<button onclick="openReportTab()">Open report in new tab</button>
+<button onclick="downloadReportHTML()">Download report (.html)</button>
+<button onclick="downloadReportCSV()">Download data (.csv)</button>
+<button onclick="copyForSheets()">Copy for Google Sheets</button>
+<span class="muted" id="exportMsg" role="status"></span>
+<p class="muted">PDF: use Print / Save as PDF. HTML: a standalone copy of this report to share or file. Google Sheets: a standalone file can't save directly into Sheets — download the data (.csv) and import it (File → Import), or use Copy for Google Sheets and paste it in. If a button does nothing here, the preview pane is blocking downloads and print — use Open report in new tab and print or save from your browser instead.</p>
+</div>
+
+<div class="card" id="reportCard">
+<h2>3 · The report — same template, every program</h2>
+<div id="report"><p class="muted">Upload a CSV above and the report appears here. Until then, this is an empty locked template — no sample numbers are shown as if they were real.</p></div>
+</div>
+
+<div class="card nobprint">
+<h2>QA — before it goes out</h2>
+<ul class="check">
+<li><label><input type="checkbox"> Date range matches the export — campaign to date as exported</label></li>
+<li><label><input type="checkbox"> Totals tie back to Ads Manager (spend / impressions spot-checked, currency matches the export)</label></li>
+<li><label><input type="checkbox"> Reach is a sum, not unique people — and the hero metric matches this program’s objective</label></li>
+</ul>
+<p class="muted">Reach is not additive: the same people appear in multiple ads and weeks, so the Reach tile is a sum with that caveat, not a deduplicated unique count. Results are split by Result indicator below the tiles whenever they mix different actions.</p>
+</div>
+
+</div>
+<script>
+/* ---- pure parsing / maths (no DOM) ---- */
+function parseDelimited(text){
+  var rows=[], row=[], cur="", inQ=false;
+  text=text.replace(/\r\n/g,"\n").replace(/\r/g,"\n");
+  for(var i=0;i<text.length;i++){
+    var ch=text[i];
+    if(inQ){
+      if(ch==='"'){ if(text[i+1]==='"'){cur+='"'; i++;} else inQ=false; }
+      else cur+=ch;
+    } else if(ch==='"'){ inQ=true; }
+    else if(ch===","||ch==="\t"){ row.push(cur); cur=""; }
+    else if(ch==="\n"){ row.push(cur); cur=""; rows.push(row); row=[]; }
+    else cur+=ch;
+  }
+  if(cur!==""||row.length){ row.push(cur); rows.push(row); }
+  return rows.filter(function(r){ return r.some(function(c){ return String(c).trim()!==""; }); });
+}
+function num(v){
+  if(v==null) return NaN;
+  var s=String(v).replace(/[^0-9.\-]/g,""); /* strips $, S$, commas, spaces, % — "S$1,200" -> 1200 */
+  if(s===""||s==="—"||s==="-") return NaN;
+  var n=parseFloat(s); return isFinite(n)?n:NaN;
+}
+var CURR_SYM="S$", CURR_CODE="SGD"; /* fallback when the Spend header names no currency */
+function currencyFromHeader(h){
+  var m=String(h||"").match(/\((USD|SGD|EUR|GBP|AUD|IDR|MYR|THB|VND|PHP|INR|JPY|KRW|CNY|HKD|TWD)\)/i);
+  if(!m) return null;
+  var code=m[1].toUpperCase();
+  var sym={"USD":"$","SGD":"S$","EUR":"€","GBP":"£","AUD":"A$","IDR":"Rp","MYR":"RM","THB":"฿","VND":"₫","PHP":"₱","INR":"₹","JPY":"¥","KRW":"₩","CNY":"¥","HKD":"HK$","TWD":"NT$"}[code]||"$";
+  return {code:code,sym:sym};
+}
+function findCols(header){
+  var idx={name:0,spend:1,impr:2,reach:3,clicks:4,results:5,date:-1,dateEnd:-1,campaign:-1,adset:-1,indicator:-1,currency:null};
+  if(!header) return idx;
+  var set={name:false,spend:false,impr:false,reach:false,clicks:false,results:false,date:false,dateEnd:false,campaign:false,adset:false,indicator:false};
+  header.forEach(function(c,ci){
+    var h=String(c).toLowerCase().trim();
+    /* Rate columns are never totals: "Cost per result", "Cost per link click",
+       "Cost per 1,000 impressions" etc. must not be read as Spend/Clicks/Results.
+       (Old bug: /cost/ matched them and the LAST one overwrote Spend, so a
+       150-row export totalled Spend as ~S$6 — the sum of per-unit costs.) */
+    if(/ per /.test(h)||/^cost per/.test(h)) return;
+    /* Fragment of a split header: an unquoted "Cost per 1,000 impressions"
+       splits at the comma, leaving "000 impressions" — not a real column. */
+    if(/^\d/.test(h)) return;
+    /* Exact Ads Manager headers first — "Ad set budget" must not steal the
+       Ad set name slot, "Campaign ID" must not steal the Campaign name slot. */
+    if(!set.name && /^(ad name|ad|creative)/.test(h)){ idx.name=ci; set.name=true; }
+    if(!set.spend && /^(amount spent|spend)/.test(h)){ idx.spend=ci; set.spend=true; var cur=currencyFromHeader(c); if(cur) idx.currency=cur; }
+    if(!set.impr && /^impressions?$/.test(h)){ idx.impr=ci; set.impr=true; }
+    if(!set.reach && /^reach$/.test(h)){ idx.reach=ci; set.reach=true; }
+    if(!set.clicks && /^(link clicks|clicks)$/.test(h)){ idx.clicks=ci; set.clicks=true; }
+    if(!set.results && /^results?$/.test(h)){ idx.results=ci; set.results=true; }
+    if(!set.date && /^(reporting starts|date|day|start date)$/.test(h)){ idx.date=ci; set.date=true; }
+    if(!set.dateEnd && /^(reporting ends|end date)$/.test(h)){ idx.dateEnd=ci; set.dateEnd=true; }
+    if(!set.campaign && /^campaign name$/.test(h)){ idx.campaign=ci; set.campaign=true; }
+    if(!set.adset && /^ad set name$/.test(h)){ idx.adset=ci; set.adset=true; }
+    if(!set.indicator && /^result indicator$/.test(h)){ idx.indicator=ci; set.indicator=true; }
+    /* Loose fallbacks for simple 6-column templates (no Ads Manager headers). */
+    if(!set.impr && /impression/.test(h)){ idx.impr=ci; set.impr=true; }
+    if(!set.clicks && /click/.test(h) && !/^ctr/.test(h) && !/rate/.test(h)){ idx.clicks=ci; set.clicks=true; }
+    if(!set.results && /result|purchase|lead|conversion/.test(h) && !/indicator|initial/.test(h)){ idx.results=ci; set.results=true; }
+    if(!set.name && /ad/.test(h)){ idx.name=ci; set.name=true; }
+  });
+  return idx;
+}
+function parseDateCell(v){
+  if(v==null) return null;
+  var s=String(v).trim(); if(!s) return null;
+  var m=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if(m){ var d=new Date(+m[3], +m[2]-1, +m[1]); return isNaN(d)?null:d; } /* DD/MM/YYYY as exported */
+  var d=new Date(s); return isNaN(d)?null:d;
+}
+function fmtDate(d){ return d.toLocaleDateString("en-SG",{day:"numeric",month:"short",year:"numeric"}); }
+function shortIndicator(ind){
+  if(!ind) return "";
+  if(/link_click/.test(ind)) return "link clicks";
+  if(/thruplay/.test(ind)) return "thruplays";
+  if(/lead/.test(ind)) return "leads";
+  if(/purchase/.test(ind)) return "purchases";
+  return ind;
+}
+function fmt(n){ return Number(n).toLocaleString("en-SG"); }
+function money(n){ return CURR_SYM+fmt(Math.round(n)); }
+function rowsToAds(text){
+  var rows=parseDelimited(text), skipped=0, totalRowSkipped=0, zeroRows=0, dateMin=null, dateMax=null, weeksSet={};
+  var empty={ads:[],rows:0,weeks:0,skipped:0,totalRowSkipped:0,cols:null,headers:null,dateMin:null,dateMax:null,zeroRows:0,resultParts:[],mixedResults:false,currency:null,adSets:[]};
+  if(!rows.length) return empty;
+  var hasHeader=rows[0].some(function(c){ return /ad name|spend|impression|reach|click|result|purchase|lead|campaign|date|^day$/i.test(String(c)); });
+  var idx=findCols(hasHeader?rows[0]:null);
+  var start=hasHeader?1:0, byKey={}, order=[], resByInd={}, adSetMap={};
+  for(var r=start;r<rows.length;r++){
+    var cells=rows[r], name=String(cells[idx.name]||"").trim();
+    if(/^total$/i.test(name)){ totalRowSkipped++; continue; } /* Ads Manager totals row — would double-count */
+    var spend=num(cells[idx.spend]), impr=num(cells[idx.impr]), reach=num(cells[idx.reach]),
+        clicks=num(cells[idx.clicks]), res=num(cells[idx.results]);
+    if(!isFinite(spend)&&!isFinite(impr)&&!isFinite(reach)){ skipped++; continue; }
+    if(spend===0&&impr===0) zeroRows++;
+    /* Period: earliest Reporting starts to latest Reporting ends (not starts).
+       Using starts alone ended a 1 Sep–8 Nov export on 3 Nov — 5 days short. */
+    var d1=idx.date>=0?parseDateCell(cells[idx.date]):null;
+    var d2=idx.dateEnd>=0?parseDateCell(cells[idx.dateEnd]):null;
+    if(d1){ if(!dateMin||d1<dateMin) dateMin=d1; if(!dateMax||d1>dateMax) dateMax=d1; weeksSet[d1.toISOString().slice(0,10)]=true; }
+    if(d2){ if(!dateMax||d2>dateMax) dateMax=d2; }
+    var camp=idx.campaign>=0?String(cells[idx.campaign]||"").trim():"";
+    var aset=idx.adset>=0?String(cells[idx.adset]||"").trim():"";
+    var ind=idx.indicator>=0?String(cells[idx.indicator]||"").trim():"";
+    var resVal=isFinite(res)?res:0;
+    if(resVal>0){ var k=ind||"(no indicator)"; resByInd[k]=(resByInd[k]||0)+resVal; }
+    /* Ad-set totals are tracked per ROW, not per aggregated ad: one ad name can
+       run in two ad sets, so attributing its whole total to the first ad set
+       would misstate the split. */
+    var gk=aset||"(all)";
+    var g=adSetMap[gk];
+    if(!g){ g={name:gk,spend:0,impr:0,clicks:0,results:0,ads:{}}; adSetMap[gk]=g; }
+    g.spend+=isFinite(spend)?spend:0; g.impr+=isFinite(impr)?impr:0;
+    g.clicks+=isFinite(clicks)?clicks:0; g.results+=resVal; g.ads[name]=true;
+    /* Weekly breakdown: same ad, one row per week. Aggregate by ad (+ campaign)
+       before ranking, or the top 5 is the same ad three times over. */
+    var key=name+" || "+camp;
+    var a=byKey[key];
+    if(!a){ a={name:name||("Ad "+(order.length+1)), campaign:camp, adset:aset, spend:0, impr:0, reach:0, clicks:0, results:0, indicator:ind, weeks:0}; byKey[key]=a; order.push(a); }
+    a.spend+=isFinite(spend)?spend:0; a.impr+=isFinite(impr)?impr:0;
+    a.reach+=isFinite(reach)?reach:0; a.clicks+=isFinite(clicks)?clicks:0; a.results+=resVal;
+    a.weeks++;
+    if(!a.indicator && ind) a.indicator=ind;
+  }
+  var parts=Object.keys(resByInd).map(function(k){ return {label:shortIndicator(k)||k, value:resByInd[k]}; })
+    .sort(function(x,y){ return y.value-x.value; });
+  var adSets=Object.keys(adSetMap).map(function(k){ var gg=adSetMap[k]; return {name:gg.name,spend:gg.spend,impr:gg.impr,clicks:gg.clicks,results:gg.results,nAds:Object.keys(gg.ads).length}; })
+    .sort(function(a,b){ return b.spend-a.spend; });
+  return {ads:order,rows:rows.length-start,weeks:Object.keys(weeksSet).length,skipped:skipped,
+    totalRowSkipped:totalRowSkipped,cols:idx,headers:hasHeader?rows[0]:null,dateMin:dateMin,dateMax:dateMax,
+    zeroRows:zeroRows,resultParts:parts,mixedResults:parts.length>1,currency:idx.currency,adSets:adSets};
+}
+function summarize(ads){
+  var t={spend:0,impr:0,reach:0,clicks:0,results:0};
+  ads.forEach(function(a){ t.spend+=a.spend; t.impr+=a.impr; t.reach+=a.reach; t.clicks+=a.clicks; t.results+=a.results; });
+  t.cpm=t.impr?(t.spend/t.impr*1000):null;
+  t.ctr=t.impr?(t.clicks/t.impr*100):null;
+  t.cpc=t.clicks?(t.spend/t.clicks):null;
+  t.cpa=t.results?(t.spend/t.results):null;
+  return t;
+}
+/* ---- charts (pure: data in, SVG string out) ---- */
+function escXml(s){ return String(s).replace(/[&<>"]/g,function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+function shortAdSet(name){
+  if(!name||name==="(all)") return "All ads";
+  var s=String(name);
+  if(/retargeting/i.test(s)) return "Retargeting";
+  if(/livestream\s*day/i.test(s)) return "Livestream Day";
+  var m=s.match(/FB\/IG_(.+)$/);
+  if(m) s=m[1];
+  s=s.replace(/_/g," ").replace(/\s+/g," ").trim();
+  return s.length>30?s.slice(0,27)+"…":s;
+}
+function fmtCompact(n){
+  if(n>=1e9) return (n/1e9).toFixed(2)+"B";
+  if(n>=1e6) return (n/1e6).toFixed(1)+"M";
+  if(n>=1e3) return (n/1e3).toFixed(1)+"K";
+  return String(Math.round(n));
+}
+var CHART_COLORS=["#1f3a5f","#2aa198","#d97706","#7c3aed","#0e7490","#b91c1c"];
+function barChartSVG(groups, sym){
+  var W=760, rowH=46, top=8, labelW=190, maxV=0;
+  groups.forEach(function(g){ if(g.spend>maxV) maxV=g.spend; });
+  if(!groups.length||!maxV) return '<p class="muted">No spend to chart.</p>';
+  var H=top+groups.length*rowH+8;
+  var out=['<svg viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="Spend by ad set" style="display:block">'];
+  groups.forEach(function(g,i){
+    var y=top+i*rowH, bw=Math.max(2,(W-labelW-230)*(g.spend/maxV));
+    var ctr=g.impr?(g.clicks/g.impr*100):0;
+    out.push('<text x="0" y="'+(y+18)+'" font-size="12" fill="#111">'+escXml(shortAdSet(g.name))+'</text>');
+    out.push('<text x="0" y="'+(y+34)+'" font-size="11" fill="#555">'+g.nAds+' ad'+(g.nAds===1?"":"s")+'</text>');
+    out.push('<rect x="'+labelW+'" y="'+(y+4)+'" width="'+bw.toFixed(1)+'" height="24" rx="4" fill="'+CHART_COLORS[i%CHART_COLORS.length]+'"/>');
+    out.push('<text x="'+(labelW+bw+8)+'" y="'+(y+21)+'" font-size="12" font-weight="700" fill="#111">'+sym+fmtCompact(g.spend)+' · '+fmtCompact(g.impr)+' impr · CTR '+ctr.toFixed(2)+'%</text>');
+  });
+  out.push('</svg>');
+  return out.join("");
+}
+function scatterSVG(ads){
+  var pts=ads.filter(function(a){ return a.impr>0 && a.spend>0; }).map(function(a){
+    return {name:a.name, adset:a.adset||"", impr:a.impr, spend:a.spend, ctr:a.impr?(a.clicks/a.impr*100):0};
+  });
+  if(!pts.length) return '<p class="muted">No ads with delivery to chart.</p>';
+  var W=760, H=340, L=56, R=16, T=16, B=44, iw=W-L-R, ih=H-T-B;
+  var minL=Math.floor(Math.log10(Math.min.apply(null,pts.map(function(p){return p.impr;}))));
+  var maxL=Math.ceil(Math.log10(Math.max.apply(null,pts.map(function(p){return p.impr;}))));
+  if(maxL<=minL) maxL=minL+1;
+  var maxCtr=Math.max.apply(null,pts.map(function(p){return p.ctr;}));
+  var yMax=Math.max(0.5, Math.ceil(maxCtr*1.15*10)/10);
+  var maxSpend=Math.max.apply(null,pts.map(function(p){return p.spend;}));
+  var x=function(v){ return L+(Math.log10(v)-minL)/(maxL-minL)*iw; };
+  var y=function(v){ return T+ih-(v/yMax)*ih; };
+  var rad=function(v){ return 5+16*Math.sqrt(v/maxSpend); };
+  var setNames=[]; pts.forEach(function(p){ var s=shortAdSet(p.adset); if(setNames.indexOf(s)<0) setNames.push(s); });
+  var col=function(p){ return CHART_COLORS[Math.max(0,setNames.indexOf(shortAdSet(p.adset)))%CHART_COLORS.length]; };
+  var out=['<svg viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="Ads by impressions, spend and CTR" style="display:block">'];
+  var e, s2;
+  for(e=minL;e<=maxL;e++){
+    var gx=x(Math.pow(10,e));
+    out.push('<line x1="'+gx.toFixed(1)+'" y1="'+T+'" x2="'+gx.toFixed(1)+'" y2="'+(T+ih)+'" stroke="#e5e7eb"/>');
+    out.push('<text x="'+gx.toFixed(1)+'" y="'+(H-24)+'" font-size="11" text-anchor="middle" fill="#555">'+fmtCompact(Math.pow(10,e))+'</text>');
+  }
+  for(s2=0;s2<=4;s2++){
+    var v=yMax*s2/4, gy=y(v);
+    out.push('<line x1="'+L+'" y1="'+gy.toFixed(1)+'" x2="'+(L+iw)+'" y2="'+gy.toFixed(1)+'" stroke="#e5e7eb"/>');
+    out.push('<text x="'+(L-8)+'" y="'+(gy+4).toFixed(1)+'" font-size="11" text-anchor="end" fill="#555">'+v.toFixed(1)+'%</text>');
+  }
+  out.push('<text x="'+(L+iw/2)+'" y="'+(H-6)+'" font-size="11" text-anchor="middle" fill="#555">Impressions (log scale) →</text>');
+  out.push('<text x="18" y="'+(T+ih/2)+'" font-size="11" text-anchor="middle" fill="#555" transform="rotate(-90 18 '+(T+ih/2)+')">CTR</text>');
+  pts.slice().sort(function(a,b){ return a.spend-b.spend; }).forEach(function(p){
+    out.push('<circle cx="'+x(p.impr).toFixed(1)+'" cy="'+y(p.ctr).toFixed(1)+'" r="'+rad(p.spend).toFixed(1)+'" fill="'+col(p)+'" fill-opacity="0.75" stroke="#fff" stroke-width="1"><title>'+escXml(p.name)+' — '+fmtCompact(p.impr)+' impr · '+CURR_SYM+fmtCompact(p.spend)+' · CTR '+p.ctr.toFixed(2)+'%</title></circle>');
+  });
+  out.push('</svg>');
+  var legend=setNames.map(function(s,i){ return '<span style="display:inline-block;margin-right:14px;font-size:12px"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:'+CHART_COLORS[i%CHART_COLORS.length]+';margin-right:4px"></span>'+escXml(s)+'</span>'; }).join("");
+  return out.join("")+'<p class="muted" style="margin:8px 0 0">'+legend+'<br>Bubble size = spend. Hover a bubble for its numbers.</p>';
+}
+function shortName48(n){ n=String(n||""); return n.length>48?n.slice(0,45)+"…":n; }
+function stripTags(s){ return String(s||"").replace(/<[^>]+>/g,"").replace(/&amp;/g,"&"); }
+/* ---- TLDR: exactly 3 highlights, all computed from the data, never invented ----
+   (1) spend + main KPI achievement (2) top 3 performers (3) watch-outs, good or bad.
+   With no target in the file, (1) states the result plainly — it cannot pass/fail. */
+function buildTldr(ads, t, meta, obj, heroLabel, heroVal, sym, code, period){
+  var out=[];
+  var ctr=t.ctr==null?"—":t.ctr.toFixed(2)+"%";
+  var cpc=t.cpc==null?"—":sym+t.cpc.toFixed(2);
+  var cpm=t.cpm==null?"—":sym+t.cpm.toFixed(2);
+  out.push("<b>1 · Spend &amp; main KPI.</b> "+escXml(period)+": "+sym+fmtCompact(t.spend)+" spent ("+code+") for "+fmtCompact(t.impr)+" impressions at "+cpm+" CPM — "+fmt(t.clicks)+" link clicks at "+ctr+" CTR / "+cpc+" CPC. Hero metric ("+escXml(heroLabel)+"): "+escXml(heroVal)+". No target is set in this file, so this is the result, not a pass/fail.");
+  var bits=[];
+  if(meta&&meta.adSets&&meta.adSets.length){
+    var g0=meta.adSets[0];
+    bits.push(escXml(shortAdSet(g0.name))+" — top ad set, "+sym+fmtCompact(g0.spend)+" ("+(t.spend?(g0.spend/t.spend*100).toFixed(0):"0")+"% of spend), CTR "+(g0.impr?(g0.clicks/g0.impr*100).toFixed(2):"—")+"%");
+  }
+  var maxImpr=Math.max.apply(null,ads.map(function(a){ return a.impr; }));
+  var byCtr=ads.filter(function(a){ return a.impr>0&&a.impr>=0.01*maxImpr; }).sort(function(a,b){ return (b.clicks/b.impr)-(a.clicks/a.impr); })[0];
+  if(byCtr) bits.push(escXml(shortName48(byCtr.name))+" — highest CTR "+(byCtr.clicks/byCtr.impr*100).toFixed(2)+"% on "+sym+fmtCompact(byCtr.spend));
+  var bySpend=ads.slice().sort(function(a,b){ return b.spend-a.spend; })[0];
+  if(bySpend&&(!byCtr||bySpend.name!==byCtr.name)) bits.push(escXml(shortName48(bySpend.name))+" — biggest asset, "+sym+fmtCompact(bySpend.spend)+" / "+fmtCompact(bySpend.impr)+" impressions");
+  if(bits.length<3){
+    var nextBig=ads.slice().sort(function(a,b){ return b.spend-a.spend; }).filter(function(a){ return (!byCtr||a.name!==byCtr.name)&&(!bySpend||a.name!==bySpend.name); })[0];
+    if(nextBig) bits.push(escXml(shortName48(nextBig.name))+" — "+sym+fmtCompact(nextBig.spend)+" / "+fmtCompact(nextBig.impr)+" impressions");
+  }
+  out.push("<b>2 · Top 3 performers.</b> "+bits.join("; ")+".");
+  var flags=[];
+  var bigSpenders=bySpend?ads.filter(function(a){ return a.spend>=0.1*bySpend.spend; }):[];
+  var lowCtr=bigSpenders.slice().sort(function(a,b){ return (a.clicks/a.impr)-(b.clicks/b.impr); })[0];
+  if(lowCtr&&lowCtr.impr&&(lowCtr.clicks/lowCtr.impr*100)<0.1&&lowCtr.spend>0)
+    flags.push(escXml(shortName48(lowCtr.name))+" took "+sym+fmtCompact(lowCtr.spend)+" at "+(lowCtr.clicks/lowCtr.impr*100).toFixed(2)+"% link CTR — its outcome is "+escXml(shortIndicator(lowCtr.indicator)||"not link clicks")+", so don't judge it on clicks.");
+  if(meta&&meta.mixedResults)
+    flags.push("Results mix two different actions ("+meta.resultParts.map(function(p){ return fmt(p.value)+" "+p.label; }).join(" + ")+") — judge this Traffic program on link clicks / CPC, not on a blended CPA.");
+  var cheapSet=null;
+  if(meta&&meta.adSets){
+    var withClicks=meta.adSets.filter(function(g){ return g.clicks>0; }).sort(function(a,b){ return (a.spend/a.clicks)-(b.spend/b.clicks); });
+    cheapSet=withClicks[0]||null;
+  }
+  if(cheapSet&&meta.adSets.length>1&&cheapSet.name!==meta.adSets[0].name)
+    flags.push(escXml(shortAdSet(cheapSet.name))+" has the lowest CPC ("+sym+(cheapSet.spend/cheapSet.clicks).toFixed(3)+") on only "+sym+fmtCompact(cheapSet.spend)+" — worth testing with more budget before scaling the big ad set further.");
+  if(meta&&meta.zeroRows>0)
+    flags.push(meta.zeroRows+" of "+meta.rows+" weekly rows had no delivery — check when the campaign actually started before comparing with other periods.");
+  if(meta&&meta.adSets&&meta.adSets.length>1&&t.spend>0&&meta.adSets[0].spend/t.spend>0.8)
+    flags.push("Spend is concentrated: one ad set is "+(meta.adSets[0].spend/t.spend*100).toFixed(0)+"% of spend.");
+  if(!flags.length) flags.push("No red flags in this export — spend, CTR and CPC are all in line with the totals above.");
+  out.push("<b>3 · Watch-outs — good and bad.</b> "+flags.slice(0,3).join(" "));
+  return out;
+}
+/* ---- report data for export: one table of rows, rendered as CSV or TSV ---- */
+function csvCell(v){ var s=String(v==null?"":v); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; }
+function reportRows(prog, obj, period, t, meta, ads, sym, code, heroLabel, heroVal){
+  var top=ads.slice().sort(function(a,b){ return b.spend-a.spend; }).slice(0,5);
+  var rows=[["Report",prog],["Objective",obj],["Period",period],["Currency",code],[]];
+  var tldr=buildTldr(ads,t,meta,obj,heroLabel,heroVal,sym,code,period);
+  rows.push(["TLDR — top 3"]);
+  tldr.forEach(function(s){ rows.push([stripTags(s)]); });
+  rows.push([]);
+  rows.push(["Metric","Value"]);
+  rows.push(["Spend ("+code+")",t.spend.toFixed(2)]);
+  rows.push(["Impressions",t.impr]);
+  rows.push(["Reach (sum — not unique)",t.reach]);
+  rows.push(["CPM ("+code+")",t.cpm==null?"":t.cpm.toFixed(2)]);
+  rows.push(["CTR % (link)",t.ctr==null?"":t.ctr.toFixed(2)]);
+  rows.push(["CPC ("+code+")",t.cpc==null?"":t.cpc.toFixed(2)]);
+  rows.push(["Link clicks",t.clicks]);
+  rows.push(["Results",t.results]);
+  rows.push(["CPA ("+code+")",(meta&&meta.mixedResults)||t.cpa==null?"":t.cpa.toFixed(2)]);
+  rows.push([]);
+  rows.push(["Top ads by spend"]);
+  rows.push(["Ad","Spend ("+code+")","Impressions","Link clicks","CTR %","Results"]);
+  top.forEach(function(a){ rows.push([a.name,a.spend.toFixed(2),a.impr,a.clicks,a.impr?(a.clicks/a.impr*100).toFixed(2):"",a.results]); });
+  rows.push([]);
+  rows.push(["Ad sets"]);
+  rows.push(["Ad set","Spend ("+code+")","Impressions","Link clicks","CTR %","Ads"]);
+  (meta?meta.adSets||[]:[]).forEach(function(g){ rows.push([g.name,g.spend.toFixed(2),g.impr,g.clicks,g.impr?(g.clicks/g.impr*100).toFixed(2):"",g.nAds]); });
+  return rows;
+}
+function reportCSVText(prog, obj, period, t, meta, ads, sym, code, heroLabel, heroVal){
+  return reportRows(prog,obj,period,t,meta,ads,sym,code,heroLabel,heroVal).map(function(r){ return r.map(csvCell).join(","); }).join("\n");
+}
+function reportTSVText(prog, obj, period, t, meta, ads, sym, code, heroLabel, heroVal){
+  return reportRows(prog,obj,period,t,meta,ads,sym,code,heroLabel,heroVal).map(function(r){ return r.map(function(v){ return String(v==null?"":v).replace(/[\t\n]/g," "); }).join("\t"); }).join("\n");
+}
+var SAMPLE_CSV="Reporting starts,Reporting ends,Ad name,Results,Result indicator,Reach,Amount spent (USD),Impressions,Link clicks\n2026-10-06,2026-10-12,Video — Hero 15s,5800,actions:link_click,300000,1200,412000,5800\n2026-10-06,2026-10-12,Carousel — Range,3100,actions:link_click,210000,850,268000,3100\n2026-10-06,2026-10-12,Image — Offer,1900,actions:link_click,150000,640,190000,1900";
+
+/* ---- DOM wiring ---- */
+var currentAds=null, currentTotals=null, currentMeta=null;
+function show(t,skipped,totalRowSkipped,source){
+  var msg=document.getElementById("loadMsg");
+  if(!t.ads.length){ msg.innerHTML='<span class="err">Couldn’t read any ad rows from '+source+'.</span> Check the columns: Ad name, Spend, Impressions, Reach, Link clicks, Results. A header row helps.'; msg.className="err"; return false; }
+  if(t.currency){ CURR_SYM=t.currency.sym; CURR_CODE=t.currency.code; }
+  currentAds=t.ads; currentTotals=summarize(t.ads); currentMeta=t;
+  var bits=["Loaded <b>"+t.rows+" weekly rows → "+t.ads.length+" ads</b> from "+source];
+  if(t.weeks>1) bits.push(t.weeks+" weeks");
+  if(t.dateMin&&t.dateMax){ var range=fmtDate(t.dateMin)+(t.dateMin.getTime()===t.dateMax.getTime()?"":" – "+fmtDate(t.dateMax)); document.getElementById("periodRange").value=range; bits.push("period "+range); }
+  else { bits.push("no Reporting dates found — type the period above"); }
+  if(t.currency) bits.push("currency "+t.currency.code);
+  if(t.zeroRows) bits.push(t.zeroRows+" weekly row(s) had no delivery (0 spend / 0 impressions)");
+  if(skipped) bits.push("skipped "+skipped+" row(s) without spend / impression numbers");
+  if(totalRowSkipped) bits.push("ignored the Ads Manager totals row (it would double-count)");
+  if(t.headers && t.cols){
+    var colName=function(i){ return t.headers[i]!=null?String(t.headers[i]).trim():"?"; };
+    bits.push("columns read as: Spend ← “"+colName(t.cols.spend)+"” · Impressions ← “"+colName(t.cols.impr)+"” · Clicks ← “"+colName(t.cols.clicks)+"”");
+  }
+  /* Sanity flag, in the export's currency. (SEA CPM can legitimately be ~$0.30,
+     so the bar is far below that: a broken Spend mapping gave CPM $0.000005.) */
+  var warn="";
+  if(currentTotals.impr>0 && currentTotals.cpm!=null && currentTotals.cpm<0.05)
+    warn=" ⚠ Spend looks wrong: CPM is "+CURR_SYM+currentTotals.cpm.toFixed(2)+" — impossible for real spend. Check the Spend column above; re-upload if it points at a “Cost per …” column.";
+  else if(currentTotals.clicks>0 && currentTotals.cpc!=null && currentTotals.cpc<0.005)
+    warn=" ⚠ Spend looks wrong: CPC is "+CURR_SYM+currentTotals.cpc.toFixed(2)+" — check the Spend column above.";
+  msg.innerHTML='<span class="ok">'+bits.join(" — ")+".</span>"+(warn?'<br><span class="err">'+warn+"</span>":""); msg.className="ok";
+  renderReport(); return true;
+}
+function renderReport(){
+  if(!currentAds){ return; }
+  var t=currentTotals, obj=document.getElementById("objective").value, meta=currentMeta;
+  var heroLabel={ "Awareness":"Reach","Traffic":"Link clicks","Conversion / Sales":"Results","Lead Gen":"Leads","Click-to-WhatsApp":"WhatsApp conversations","Livestream":"Views" }[obj];
+  var heroVal= obj==="Awareness" ? fmt(t.reach)+" people (sum — not unique)"
+    : obj==="Traffic" ? fmt(t.clicks)+" clicks"
+    : obj==="Livestream" ? fmt(t.impr)+" views"
+    : fmt(t.results)+" "+heroLabel.toLowerCase();
+  var top=currentAds.slice().sort(function(a,b){ return b.spend-a.spend; }).slice(0,5);
+  var dash="—";
+  var period=document.getElementById("periodRange").value||"Campaign to date (as in export)";
+  var tldr=buildTldr(currentAds, t, meta, obj, heroLabel, heroVal, CURR_SYM, CURR_CODE, period);
+  var barNote="";
+  if(meta&&meta.adSets&&meta.adSets.length&&t.spend>0){
+    barNote=shortAdSet(meta.adSets[0].name)+" is "+CURR_SYM+fmtCompact(meta.adSets[0].spend)+" of "+CURR_SYM+fmtCompact(t.spend)+" ("+(meta.adSets[0].spend/t.spend*100).toFixed(0)+"%).";
+  }
+  var scatterNote="";
+  if(currentAds.length){
+    var maxImpr=Math.max.apply(null,currentAds.map(function(a){ return a.impr; }));
+    var bySpend=currentAds.slice().sort(function(a,b){ return b.spend-a.spend; })[0];
+    var byCtr=currentAds.filter(function(a){ return a.impr>0&&a.impr>=0.01*maxImpr; }).sort(function(a,b){ return (b.clicks/b.impr)-(a.clicks/a.impr); })[0]||bySpend;
+    var bigSpenders=currentAds.filter(function(a){ return a.spend>=0.1*bySpend.spend; });
+    var lowCtr=bigSpenders.slice().sort(function(a,b){ return (a.clicks/a.impr)-(b.clicks/b.impr); })[0];
+    var shortName=function(n){ return n.length>48?n.slice(0,45)+"…":n; };
+    var ctrOf=function(a){ return a.impr?(a.clicks/a.impr*100).toFixed(2):"—"; };
+    scatterNote="Biggest bubble: "+esc(shortName(bySpend.name))+" — "+CURR_SYM+fmtCompact(bySpend.spend)+", "+fmtCompact(bySpend.impr)+" impr, CTR "+ctrOf(bySpend)+"%. "
+      +"Highest CTR: "+esc(shortName(byCtr.name))+" — "+ctrOf(byCtr)+"% at "+CURR_SYM+fmtCompact(byCtr.spend)+". "
+      +(lowCtr&&lowCtr.name!==byCtr.name?"Lowest CTR among the big spenders: "+esc(shortName(lowCtr.name))+" — "+ctrOf(lowCtr)+"% on "+CURR_SYM+fmtCompact(lowCtr.spend)+" (check what it optimises for — its outcome may not be link clicks).":"");
+  }
+  var cpaCell=(meta&&meta.mixedResults)?dash:(t.cpa==null?dash:CURR_SYM+t.cpa.toFixed(2));
+  var cpaNote=(meta&&meta.mixedResults)?"mixed result types — see below":("spend ÷ results");
+  var partsNote="";
+  if(meta&&meta.resultParts.length){
+    partsNote='<p class="muted">Results breakdown: '+meta.resultParts.map(function(p){ return fmt(p.value)+" "+p.label; }).join(" + ")+'.'
+      +(meta.mixedResults?' CPA is not shown because Results mixes different actions — cost per link click is the comparable number for this Traffic program.':"")+'</p>';
+  }
+  document.getElementById("report").innerHTML=
+   '<p><b>'+esc(document.getElementById("progName").value||"Weekly report")+'</b> &nbsp;·&nbsp; Objective: '+obj+' &nbsp;·&nbsp; Period: '+esc(period)+' &nbsp;·&nbsp; '+currentAds.length+' ads · '+meta.rows+' weekly rows in this export</p>'
+  +'<p class="muted">Totals below are for that period as exported — campaign to date. No 7-day slice is assumed, and there is no vs-last-week comparison unless you upload a previous period to compare against.</p>'
+  +'<div style="border:2px solid #2aa198;border-radius:10px;padding:14px;background:#f0fdfa;margin:12px 0"><h3 style="font-size:14px;color:#1f3a5f;margin:0 0 8px">TLDR — top 3</h3><ol style="margin:0;padding-left:20px;font-size:14px;line-height:1.6">'+tldr.map(function(s){ return '<li style="margin-bottom:6px">'+s+'</li>'; }).join("")+'</ol></div>'
+  +'<h3 style="font-size:14px;color:#1f3a5f">KPI tiles — same 8, same order, every program</h3>'
+  +'<div class="tiles">'
+  +'<div class="tile"><b>Spend ('+CURR_CODE+')</b><span>'+money(t.spend)+'</span><small>total in this export</small></div>'
+  +'<div class="tile"><b>Impressions</b><span>'+fmt(t.impr)+'</span><small>total</small></div>'
+  +'<div class="tile"><b>Reach</b><span>'+fmt(t.reach)+'</span><small>sum of per-ad reach — not unique</small></div>'
+  +'<div class="tile"><b>CPM</b><span>'+(t.cpm==null?dash:CURR_SYM+t.cpm.toFixed(2))+'</span><small>per 1,000 impressions</small></div>'
+  +'<div class="tile"><b>CTR</b><span>'+(t.ctr==null?dash:t.ctr.toFixed(2)+"%")+'</span><small>link CTR</small></div>'
+  +'<div class="tile"><b>CPC</b><span>'+(t.cpc==null?dash:CURR_SYM+t.cpc.toFixed(2))+'</span><small>per link click</small></div>'
+  +'<div class="tile"><b>Results</b><span>'+fmt(t.results)+'</span><small>total</small></div>'
+  +'<div class="tile"><b>CPA</b><span>'+cpaCell+'</span><small>'+cpaNote+'</small></div>'
+  +'</div>'
+  +partsNote
+  +'<h3 style="font-size:14px;color:#1f3a5f">Hero metric — '+heroLabel+'</h3>'
+  +'<div class="hero"><b>'+heroLabel+': '+heroVal+'</b><br><span class="muted">Benchmark: add your per-program target (e.g. target CPA) and this flags vs target instead of just showing the number.</span></div>'
+  +'<h3 style="font-size:14px;color:#1f3a5f">Top 5 ads by spend (weekly rows aggregated by ad)</h3>'
+  +'<table><tr><th>Ad</th><th>Spend</th><th>Impressions</th><th>Link clicks</th><th>CTR</th><th>Results</th></tr>'
+  + top.map(function(a){
+      var ctr=a.impr?(a.clicks/a.impr*100).toFixed(2)+"%":dash;
+      var res=a.results?fmt(a.results)+(a.indicator?" ("+shortIndicator(a.indicator)+")":""):dash;
+      return '<tr><td>'+esc(a.name)+'</td><td>'+money(a.spend)+'</td><td>'+fmt(a.impr)+'</td><td>'+fmt(a.clicks)+'</td><td>'+ctr+'</td><td>'+res+'</td></tr>';
+    }).join("")+'</table>'
+  +'<h3 style="font-size:14px;color:#1f3a5f">Charts — where the money and the attention went</h3>'
+  +'<h4 style="font-size:13px;color:#1f3a5f;margin:12px 0 4px">Spend by ad set</h4>'
+  +barChartSVG(meta?meta.adSets||[]:[], CURR_SYM)
+  +(barNote?'<p class="muted">'+esc(barNote)+'</p>':"")
+  +'<h4 style="font-size:13px;color:#1f3a5f;margin:12px 0 4px">Best-performing assets — impressions × spend × CTR</h4>'
+  +'<p class="muted">Each bubble is one ad. Further right = more impressions (log scale), higher = better CTR, bigger = more spend. Colour = ad set.</p>'
+  +scatterSVG(currentAds)
+  +(scatterNote?'<p class="muted">'+scatterNote+'</p>':"")
+  +'<h3 style="font-size:14px;color:#1f3a5f">What changed / next actions</h3>'
+  +'<p class="muted">Add one line after QA — e.g. which ad to hold, which creative to review. (Not auto-written.)</p>'
+  +'<p class="muted">Template v2.6 · Rendered from your CSV upload · QA checklist above — nothing sent until ticked.</p>';
+}
+function esc(s){ return String(s).replace(/[&<>"]/g,function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+function loadPaste(){
+  var raw=document.getElementById("pasteBox").value;
+  if(!raw.trim()){ document.getElementById("loadMsg").innerHTML='<span class="err">Paste your CSV first, or upload a file.</span>'; return; }
+  var r=rowsToAds(raw); show(r, r.skipped, r.totalRowSkipped, "pasted CSV");
+}
+function loadSample(){
+  var r=rowsToAds(SAMPLE_CSV);
+  document.getElementById("progName").value="Sample — Traffic";
+  show(r, r.skipped, r.totalRowSkipped, "sample CSV");
+  document.getElementById("loadMsg").innerHTML+=' <span class="pill">SAMPLE — not real</span>';
+}
+function downloadTemplate(){
+  var csv="Reporting starts,Reporting ends,Ad name,Campaign name,Ad set name,Results,Result indicator,Reach,Amount spent (USD),Impressions,Link clicks,CTR (link click-through rate)\n2026-10-06,2026-10-12,Video — Hero 15s,2026 Q4 FB - Traffic - Music Activation,Retargeting,5800,actions:link_click,300000,1200,412000,5800,1.41%\n2026-10-06,2026-10-12,[LIVE] Konser,2026 Q4 FB - Engagement - Music Activation,Livestream Day,1208600,video_thruplay_watched_actions,900000,800,1200000,120,0.01%\n";
+  var blob=new Blob([csv],{type:"text/csv"}), a=document.createElement("a");
+  a.href=URL.createObjectURL(blob); a.download="ads-manager-report-template.csv";
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ if(a.parentNode) a.parentNode.removeChild(a); },1000);
+  setTimeout(function(){ URL.revokeObjectURL(a.href); },60000);
+}
+function downloadBlob(text, filename, type){
+  var blob=new Blob([text],{type:type}), url=URL.createObjectURL(blob), a=document.createElement("a");
+  a.href=url; a.download=filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ if(a.parentNode) a.parentNode.removeChild(a); },1000);
+  setTimeout(function(){ URL.revokeObjectURL(url); },60000);
+  return url;
+}
+function exportFallback(url, label, saveHint){
+  var m=document.getElementById("exportMsg");
+  if(m) m.innerHTML='Download started. If nothing appeared, <a href="'+url+'" target="_blank" rel="noopener">tap here to open '+label+' in a new tab</a> — then '+saveHint+' from your browser.';
+}
+function standaloneReportHTML(autoPrint){
+  var css=document.querySelector("style")?document.querySelector("style").textContent:"";
+  var title=esc(document.getElementById("progName").value||"Weekly report");
+  var toolbar='<div class="nobprint" style="margin:12px 0"><button onclick="window.print()" style="padding:8px 14px;border:1px solid #1f3a5f;background:#1f3a5f;color:#fff;border-radius:8px;cursor:pointer">Print / Save as PDF</button> <span class="muted">This is a standalone copy of your report — print it, or save it with your browser (Ctrl/Cmd+S).</span></div>';
+  var auto=autoPrint?'<script>window.addEventListener("load",function(){window.print();});<\/script>':"";
+  return "<!DOCTYPE html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"><title>"+title+" — Report</title><style>"+css+"</style></head><body><div class=\"banner\"><div class=\"wrap\"><h1>"+title+"</h1><p>Template v2.6 — exported from the Report Builder. Values are as uploaded; nothing was re-pulled.</p></div></div><div class=\"wrap\">"+toolbar+"<div class=\"card\">"+document.getElementById("report").innerHTML+"</div></div>"+auto+"</body></html>";
+}
+function openBlobTab(url, label){
+  var w=null;
+  try{ w=window.open(url, "_blank"); }catch(e){ w=null; }
+  var m=document.getElementById("exportMsg");
+  if(!w&&m) m.innerHTML='The new tab was blocked. <a href="'+url+'" target="_blank" rel="noopener">Tap here to open '+label+' in a new tab</a> instead.';
+  else if(m) m.textContent="Opened "+label+" in a new tab — print and download work from there.";
+  return w;
+}
+function openReportTab(){
+  if(!currentAds){ alert("Upload a CSV first."); return; }
+  var url=URL.createObjectURL(new Blob([standaloneReportHTML(false)],{type:"text/html"}));
+  setTimeout(function(){ URL.revokeObjectURL(url); },60000);
+  openBlobTab(url, "the report");
+}
+function printReport(){
+  if(!currentAds){ alert("Upload a CSV first."); return; }
+  var url=URL.createObjectURL(new Blob([standaloneReportHTML(true)],{type:"text/html"}));
+  setTimeout(function(){ URL.revokeObjectURL(url); },60000);
+  openBlobTab(url, "the report for printing");
+}
+function exportFilename(ext){
+  var base=(document.getElementById("progName").value||"report").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"")||"report";
+  return base+"-report."+ext;
+}
+function currentExportArgs(){
+  var period=document.getElementById("periodRange").value||"Campaign to date (as in export)";
+  var obj=document.getElementById("objective").value;
+  var heroLabel={ "Awareness":"Reach","Traffic":"Link clicks","Conversion / Sales":"Results","Lead Gen":"Leads","Click-to-WhatsApp":"WhatsApp conversations","Livestream":"Views" }[obj];
+  var heroVal= obj==="Awareness" ? fmt(currentTotals.reach)+" people (sum — not unique)"
+    : obj==="Traffic" ? fmt(currentTotals.clicks)+" clicks"
+    : obj==="Livestream" ? fmt(currentTotals.impr)+" views"
+    : fmt(currentTotals.results)+" "+heroLabel.toLowerCase();
+  return {prog:document.getElementById("progName").value||"Weekly report", obj:obj, period:period, heroLabel:heroLabel, heroVal:heroVal};
+}
+function downloadReportHTML(){
+  if(!currentAds){ alert("Upload a CSV first."); return; }
+  var url=downloadBlob(standaloneReportHTML(false), exportFilename("html"), "text/html");
+  exportFallback(url, "the report", "save it (Ctrl/Cmd+S)");
+}
+function downloadReportCSV(){
+  if(!currentAds){ alert("Upload a CSV first."); return; }
+  var a=currentExportArgs();
+  var csv=reportCSVText(a.prog, a.obj, a.period, currentTotals, currentMeta, currentAds, CURR_SYM, CURR_CODE, a.heroLabel, a.heroVal);
+  var url=downloadBlob(csv, exportFilename("csv"), "text/csv");
+  exportFallback(url, "the data", "save it as .csv");
+}
+function fallbackCopy(text){
+  var ta=document.createElement("textarea"); ta.value=text; document.body.appendChild(ta); ta.select();
+  try{ document.execCommand("copy"); }catch(e){}
+  document.body.removeChild(ta);
+}
+function copyForSheets(){
+  if(!currentAds){ alert("Upload a CSV first."); return; }
+  var a=currentExportArgs();
+  var tsv=reportTSVText(a.prog, a.obj, a.period, currentTotals, currentMeta, currentAds, CURR_SYM, CURR_CODE, a.heroLabel, a.heroVal);
+  var done=function(){ var m=document.getElementById("exportMsg"); if(m) m.textContent="Copied — paste into Google Sheets (Ctrl/Cmd+V)."; };
+  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(tsv).then(done, function(){ fallbackCopy(tsv); done(); }); }
+  else { fallbackCopy(tsv); done(); }
+}
+document.getElementById("csvFile").addEventListener("change",function(e){
+  var f=e.target.files[0]; if(!f) return;
+  var reader=new FileReader();
+  reader.onload=function(){ var r=rowsToAds(reader.result); show(r, r.skipped, r.totalRowSkipped, "file “"+f.name+"”"); };
+  reader.onerror=function(){ document.getElementById("loadMsg").innerHTML='<span class="err">Couldn’t read that file — try downloading it as CSV and uploading again.</span>'; };
+  reader.readAsText(f);
+});
+document.getElementById("objective").addEventListener("change",renderReport);
+</script>
+</body>
+</html>
