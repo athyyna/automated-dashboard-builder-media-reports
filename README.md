@@ -2,6 +2,19 @@
 
 One locked report template for paid-media programs, instead of a new report (or a new reporting agent) per program. Upload an Ads Manager CSV export and it renders the same report every time: same sections, same order, same metrics.
 
+## Set the site live (so you can open it from a link)
+
+1. On GitHub, open this repo → **Settings** → **Pages**.
+2. Under "Build and deployment", set **Source** to **Deploy from a branch**.
+3. Set **Branch** to **main** and the folder to **/ (root)**, then **Save**.
+4. Wait a minute or two, then open: https://athyyna.github.io/automated-dashboard-builder-media-reports/
+
+## Download the HTML (to use it offline or send it to someone)
+
+- From this repo: open `index.html` → **Raw** → right-click → **Save As** (or Ctrl/Cmd+S).
+- Or: the green **Code** button → **Download ZIP**, unzip, and open `index.html`.
+- Or ask me in chat and I'll send you the file.
+
 ## How to use
 
 1. Open `index.html` in a browser (double-click it — nothing is installed, nothing leaves your browser).
